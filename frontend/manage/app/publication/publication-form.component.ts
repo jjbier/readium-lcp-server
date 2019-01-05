@@ -154,7 +154,7 @@ export class PublicationFormComponent implements OnInit {
                                 publication.title = this.form.value['title'];
                                 publication.masterFilename = this.form.value['filename'];
                                 console.log("add: ", publication);
-                                publication.type = this.isEPUB ? 'epub' : 'pdf';
+                                publication.format = this.isEPUB ? 'epub' : 'pdf';
                                 this.publicationService.addPublication(publication)
                                 .then( error => {
                                     console.log(error);
