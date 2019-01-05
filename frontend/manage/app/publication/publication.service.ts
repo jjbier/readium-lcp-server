@@ -28,7 +28,8 @@ export class PublicationService extends CrudService<Publication> {
             uuid: jsonObj.uuid,
             title: jsonObj.title,
             status: jsonObj.status,
-            masterFilename: null
+            masterFilename: null,
+            format: jsonObj.format
         }
     }
 

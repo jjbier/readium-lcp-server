@@ -54,7 +54,6 @@ func GetPurchases(w http.ResponseWriter, r *http.Request, s IServer) {
 
 	PrepareListHeaderResponse(len(purchases), "/api/v1/purchases", pagination, w)
 	w.Header().Set("Content-Type", api.ContentType_JSON)
-
 	enc := json.NewEncoder(w)
 	err = enc.Encode(purchases)
 	if err != nil {

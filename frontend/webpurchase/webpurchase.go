@@ -37,7 +37,7 @@ p.type, p.transaction_date,
 p.license_uuid,
 p.start_date, p.end_date, p.status,
 u.id, u.uuid, u.name, u.email, u.password, u.hint,
-pu.id, pu.uuid, pu.title, pu.status
+pu.id, pu.uuid, pu.title, pu.status, pu.type
 FROM purchase p
 left join user u on (p.user_id=u.id)
 left join publication pu on (p.publication_id=pu.id)`
@@ -103,7 +103,6 @@ func convertRecordsToPurchases(records *sql.Rows) func() (Purchase, error) {
 			records.Close()
 			err = ErrNotFound
 		}
-
 		return purchase, err
 	}
 }
@@ -131,7 +130,8 @@ func convertRecordToPurchase(records *sql.Rows) (Purchase, error) {
 		&pub.ID,
 		&pub.UUID,
 		&pub.Title,
-		&pub.Status)
+		&pub.Status,
+		&pub.Type)
 
 	if err != nil {
 		return Purchase{}, err

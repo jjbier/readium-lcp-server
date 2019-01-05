@@ -23,6 +23,11 @@
         <span *ngIf="order == 'title'&&!reverse" class="fa fa-caret-down"></span>
         <span *ngIf="order == 'title'&&reverse" class="fa fa-caret-up"></span>
       </th>
+      <th class="order-title" (click)="orderBy('format')">
+        Format
+        <span *ngIf="order == 'format'&&!reverse" class="fa fa-caret-down"></span>
+        <span *ngIf="order == 'format'&&reverse" class="fa fa-caret-up"></span>
+      </th>
       <th class="order-title" (click)="orderBy('uuid')">
         UUID
         <span *ngIf="order == 'uuid'&&!reverse" class="fa fa-caret-down"></span>
@@ -35,6 +40,7 @@
     <tr *ngFor="let publication of publications | sortBy:order:reverse">
         <td *ngIf="keptWithFilter(publication)">{{publication.id}}</td>
         <td *ngIf="keptWithFilter(publication)">{{publication.title}}</td>
+      <td *ngIf="keptWithFilter(publication)">{{publication.format}}</td>
         <td *ngIf="keptWithFilter(publication)">{{publication.uuid}}</td>
         <td *ngIf="keptWithFilter(publication)">
           <button

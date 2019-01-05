@@ -31,7 +31,7 @@
                       [uploader]="uploader"
                       class="drop-zone">
           <div *ngIf="lastFile&&!notAnEPUB">{{lastFile.file.name}}</div>
-          <div *ngIf="!lastFile&&!notAnEPUB">Drop your EPUB file here</div>
+          <div *ngIf="!lastFile&&!notAnEPUB">Drop your EPUB or PDF file here</div>
           <div *ngIf="notAnEPUB&&lastFile">The file must be a .epub</div>
       </div>
     </div>

@@ -6,4 +6,5 @@ export class Publication implements CrudItem {
     title:           string;
     masterFilename?: string;
     status?:         string;
+    format?:         string;
 }

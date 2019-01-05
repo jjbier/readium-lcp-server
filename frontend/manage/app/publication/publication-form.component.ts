@@ -40,6 +40,8 @@ export class PublicationFormComponent implements OnInit {
     public lastFile:any;
     public hasBaseDropZoneOver:boolean = false;
     public notAnEPUB: boolean = false;
+    public isPDF: boolean = false;
+    public isEPUB: boolean = false;
 
     constructor(
         private fb: FormBuilder,
@@ -62,14 +64,18 @@ export class PublicationFormComponent implements OnInit {
     onItemAdded = function(fileItem: any)
     {
         this.split = fileItem.file.name.split('.');
-        if (this.split[this.split.length-1] === "epub")
+        let extension= this.split[this.split.length-1];
+        if (extension === "epub")
         {
-            this.notAnEPUB = false;
+            this.isEPUB = true;
+        }else if (extension === "pdf") {
+            this.isPDF = true;
         }
         else
         {
             this.notAnEPUB = true;
         }
+
         this.uploader.queue = [fileItem];
         let publication : Publication = new Publication();
         publication.title = this.form.value['title']
@@ -123,7 +129,13 @@ export class PublicationFormComponent implements OnInit {
             );
 
         } else {
-            this.fileName = this.form.value['title'] + '.epub';
+            this.fileName = this.form.value['title'];
+            if (this.isEPUB) {
+                this.fileName = this.fileName + ".epub";
+            } else {
+                this.fileName = this.fileName + ".pdf";
+            }
+
             if (this.form.value["type"] === "UPLOAD") {
                 this.lastFile.file.name = this.fileName;
             }
@@ -133,14 +145,16 @@ export class PublicationFormComponent implements OnInit {
                     result => {
                         if (result === 0) {
                             if (this.form.value["type"] === "UPLOAD") {
-                                let options = {url: this.baseUrl + "/PublicationUpload?title=" + this.form.value['title']};
+                                let type = this.isEPUB ? 'epub' : 'pdf';
+                                let options = {url: this.baseUrl + "/PublicationUpload?title=" + this.form.value['title'] + "&type="+type};
                                 this.uploader.setOptions(options);
                                 this.uploader.uploadItem(this.lastFile);
                             } else {
                                 let publication = new Publication();
                                 publication.title = this.form.value['title'];
                                 publication.masterFilename = this.form.value['filename'];
-
+                                console.log("add: ", publication);
+                                publication.type = this.isEPUB ? 'epub' : 'pdf';
                                 this.publicationService.addPublication(publication)
                                 .then( error => {
                                     console.log(error);
@@ -161,9 +175,11 @@ export class PublicationFormComponent implements OnInit {
                     }
                 );
             } else {
+
                 this.newPublication = false;
                 if (this.form.value["type"] === "UPLOAD") {
-                    let options = {url: this.baseUrl + "/PublicationUpload?title=" + this.form.value['title']};
+                    let type = this.isEPUB ? 'epub' : 'pdf';
+                    let options = {url: this.baseUrl + "/PublicationUpload?title=" + this.form.value['title'] + "&type="+type};
                     this.uploader.setOptions(options);
                     this.uploader.uploadItem(this.lastFile);
                 } else {

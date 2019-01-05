@@ -28,6 +28,8 @@ import (
 	"github.com/satori/go.uuid"
 
 	"github.com/Machiel/slugify"
+
+	pdfEncrypt "github.com/jjbier/lcpencrypt-pdf/encrypt"
 )
 
 // Publication status
@@ -60,6 +62,7 @@ type Publication struct {
 	Status         string `json:"status"`
 	Title          string `json:"title,omitempty"`
 	MasterFilename string `json:"masterFilename,omitempty"`
+	Type           string `json:"format"`
 }
 
 // PublicationManager helper
@@ -71,7 +74,7 @@ type PublicationManager struct {
 // Get gets a publication by its ID
 //
 func (pubManager PublicationManager) Get(id int64) (Publication, error) {
-	dbGetByID, err := pubManager.db.Prepare("SELECT id, uuid, title, status FROM publication WHERE id = ? LIMIT 1")
+	dbGetByID, err := pubManager.db.Prepare("SELECT id, uuid, title, status, type FROM publication WHERE id = ? LIMIT 1")
 	if err != nil {
 		return Publication{}, err
 	}
@@ -84,7 +87,8 @@ func (pubManager PublicationManager) Get(id int64) (Publication, error) {
 			&pub.ID,
 			&pub.UUID,
 			&pub.Title,
-			&pub.Status)
+			&pub.Status,
+			&pub.Type)
 		records.Close()
 		return pub, err
 	}
@@ -95,7 +99,7 @@ func (pubManager PublicationManager) Get(id int64) (Publication, error) {
 // GetByUUID returns a publication by its uuid
 //
 func (pubManager PublicationManager) GetByUUID(uuid string) (Publication, error) {
-	dbGetByUUID, err := pubManager.db.Prepare("SELECT id, uuid, title, status FROM publication WHERE uuid = ? LIMIT 1")
+	dbGetByUUID, err := pubManager.db.Prepare("SELECT id, uuid, title, status, type FROM publication WHERE uuid = ? LIMIT 1")
 	if err != nil {
 		return Publication{}, err
 	}
@@ -108,7 +112,8 @@ func (pubManager PublicationManager) GetByUUID(uuid string) (Publication, error)
 			&pub.ID,
 			&pub.UUID,
 			&pub.Title,
-			&pub.Status)
+			&pub.Status,
+			&pub.Type)
 		records.Close()
 		return pub, err
 	}
@@ -152,28 +157,49 @@ func EncryptEPUB(inputPath string, pub Publication, pubManager PublicationManage
 	// create a temp file in the frontend "encrypted repository"
 	outputFilename := contentUUID + ".tmp"
 	outputPath := path.Join(pubManager.config.FrontendServer.EncryptedRepository, outputFilename)
+	lcpPublication := apilcp.LcpPublication{}
 
-	// encrypt the master file found at inputPath, write in the temp file, in the "encrypted repository"
-	encryptedEpub, err := encrypt.EncryptEpub(inputPath, outputPath)
+	if pub.Type == "pdf" {
+		// encrypt the master file found at inputPath, write in the temp file, in the "encrypted repository"
+		encryptedPdf, errPdf := pdfEncrypt.EncryptPdf(inputPath, outputPath)
 
-	if err != nil {
-		// unable to encrypt the master file
-		if _, err := os.Stat(inputPath); err == nil {
-			os.Remove(inputPath)
+		if errPdf != nil {
+			// unable to encrypt the master file
+			if _, err := os.Stat(inputPath); err == nil {
+				os.Remove(inputPath)
+			}
+			return errPdf
 		}
-		return err
+
+		lcpPublication.ContentKey = encryptedPdf.EncryptionKey
+		lcpPublication.Checksum = &encryptedPdf.Checksum
+		lcpPublication.Size = &encryptedPdf.Size
+
+	} else {
+		// encrypt the master file found at inputPath, write in the temp file, in the "encrypted repository"
+		encryptedEpub, errEpub := encrypt.EncryptEpub(inputPath, outputPath)
+
+		if errEpub != nil {
+			// unable to encrypt the master file
+			if _, err := os.Stat(inputPath); err == nil {
+				os.Remove(inputPath)
+			}
+			return errEpub
+		}
+
+		lcpPublication.ContentKey = encryptedEpub.EncryptionKey
+		lcpPublication.Checksum = &encryptedEpub.Checksum
+		lcpPublication.Size = &encryptedEpub.Size
 	}
 
 	// prepare the import request to the lcp server
 	contentDisposition := slugify.Slugify(pub.Title)
-	lcpPublication := apilcp.LcpPublication{}
+
 	lcpPublication.ContentId = contentUUID
-	lcpPublication.ContentKey = encryptedEpub.EncryptionKey
+
 	// both the frontend and the lcp server must have access to this repository
 	lcpPublication.Output = path.Join(pubManager.config.Storage.FileSystem.Directory, outputFilename)
 	lcpPublication.ContentDisposition = &contentDisposition
-	lcpPublication.Checksum = &encryptedEpub.Checksum
-	lcpPublication.Size = &encryptedEpub.Size
 
 	// json encode the payload
 	jsonBody, err := json.Marshal(lcpPublication)
@@ -214,7 +240,7 @@ func EncryptEPUB(inputPath string, pub Publication, pubManager PublicationManage
 	// the publication uuid is the lcp db content id.
 	pub.UUID = contentUUID
 	pub.Status = StatusOk
-	dbAdd, err := pubManager.db.Prepare("INSERT INTO publication (uuid, title, status) VALUES ( ?, ?, ?)")
+	dbAdd, err := pubManager.db.Prepare("INSERT INTO publication (uuid, title, status, type) VALUES ( ?, ?, ?, ?)")
 	if err != nil {
 		return err
 	}
@@ -223,7 +249,8 @@ func EncryptEPUB(inputPath string, pub Publication, pubManager PublicationManage
 	_, err = dbAdd.Exec(
 		pub.UUID,
 		pub.Title,
-		pub.Status)
+		pub.Status,
+		pub.Type)
 	return err
 }
 
@@ -279,7 +306,7 @@ func (pubManager PublicationManager) UploadEPUB(r *http.Request, w http.Response
 // Only the title is updated
 //
 func (pubManager PublicationManager) Update(pub Publication) error {
-	dbUpdate, err := pubManager.db.Prepare("UPDATE publication SET title=?, status=? WHERE id = ?")
+	dbUpdate, err := pubManager.db.Prepare("UPDATE publication SET title=?, status=?, type=? WHERE id = ?")
 	if err != nil {
 		return err
 	}
@@ -287,6 +314,7 @@ func (pubManager PublicationManager) Update(pub Publication) error {
 	_, err = dbUpdate.Exec(
 		pub.Title,
 		pub.Status,
+		pub.Type,
 		pub.ID)
 	if err != nil {
 		return err
@@ -358,7 +386,7 @@ func (pubManager PublicationManager) Delete(id int64) error {
 // Parameters: page = number of items per page; pageNum = page offset (0 for the first page)
 //
 func (pubManager PublicationManager) List(page int, pageNum int) func() (Publication, error) {
-	dbList, err := pubManager.db.Prepare("SELECT id, uuid, title, status FROM publication ORDER BY title desc LIMIT ? OFFSET ?")
+	dbList, err := pubManager.db.Prepare("SELECT id, uuid, title, status, type FROM publication ORDER BY title desc LIMIT ? OFFSET ?")
 	if err != nil {
 		return func() (Publication, error) { return Publication{}, err }
 	}
@@ -374,7 +402,8 @@ func (pubManager PublicationManager) List(page int, pageNum int) func() (Publica
 				&pub.ID,
 				&pub.UUID,
 				&pub.Title,
-				&pub.Status)
+				&pub.Status,
+				&pub.Type)
 			if err != nil {
 				return pub, err
 			}
@@ -408,6 +437,7 @@ const tableDef = "CREATE TABLE IF NOT EXISTS publication (" +
 	"id integer NOT NULL PRIMARY KEY," +
 	"uuid varchar(255) NOT NULL," +
 	"title varchar(255) NOT NULL," +
-	"status varchar(255) NOT NULL" +
+	"status varchar(255) NOT NULL, " +
+	"type varchar(255) NOT NULL " +
 	");" +
 	"CREATE INDEX IF NOT EXISTS uuid_index ON publication (uuid);"

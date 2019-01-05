@@ -178,7 +178,9 @@ func CreatePublication(w http.ResponseWriter, r *http.Request, s IServer) {
 //UploadEPUB creates a new EPUB file
 func UploadEPUB(w http.ResponseWriter, r *http.Request, s IServer) {
 	var pub webpublication.Publication
-	pub.Title = r.URL.Query()["title"][0]
+	values := r.URL.Query()
+	pub.Title = values["title"][0]
+	pub.Type = values["type"][0]
 	s.PublicationAPI().UploadEPUB(r, w, pub)
 }
 

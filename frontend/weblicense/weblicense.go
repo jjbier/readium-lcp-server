@@ -60,15 +60,16 @@ type WebLicense interface {
 
 // License struct defines a license
 type License struct {
-	ID               string `json:""`
-	PublicationTitle string `json:"publication_title"`
-	UserName         string `json:"user_name"`
-	Type             string `json:"type"`
-	UUID             string `json:"id"`
-	DeviceCount      int    `json:"device_count"`
-	Status           string `json:"status"`
-	PurchaseID       int    `json:"purchase_id"`
-	Message          string `json:"message"`
+	ID                string `json:""`
+	PublicationTitle  string `json:"publication_title"`
+	PublicationFormat string `json:"publication_format"`
+	UserName          string `json:"user_name"`
+	Type              string `json:"type"`
+	UUID              string `json:"id"`
+	DeviceCount       int    `json:"device_count"`
+	Status            string `json:"status"`
+	PurchaseID        int    `json:"purchase_id"`
+	Message           string `json:"message"`
 }
 
 // Licenses struct defines a licenses array to be transfered
@@ -89,7 +90,7 @@ type LicenseManager struct {
 // Get a license for a given ID
 //
 func (licManager LicenseManager) Get(id int64) (License, error) {
-	dbGetByID, err := licManager.db.Prepare(`SELECT l.uuid, pu.title, u.name, p.type, l.device_count, l.status, p.id, l.message FROM license_view AS l 
+	dbGetByID, err := licManager.db.Prepare(`SELECT l.uuid, pu.title, pu.type, u.name, p.type, l.device_count, l.status, p.id, l.message FROM license_view AS l 
 											INNER JOIN purchase as p ON l.uuid = p.license_uuid 
 											INNER JOIN publication as pu ON p.publication_id = pu.id
 											INNER JOIN user as u ON p.user_id = u.id
@@ -105,6 +106,7 @@ func (licManager LicenseManager) Get(id int64) (License, error) {
 		err = records.Scan(
 			&lic.ID,
 			&lic.PublicationTitle,
+			&lic.PublicationFormat,
 			&lic.UserName,
 			&lic.Type,
 			&lic.DeviceCount,
@@ -121,7 +123,7 @@ func (licManager LicenseManager) Get(id int64) (License, error) {
 // GetFiltered give a license with more than the filtered number
 //
 func (licManager LicenseManager) GetFiltered(filter string) ([]License, error) {
-	dbGetByID, err := licManager.db.Prepare(`SELECT l.uuid, pu.title, u.name, p.type, l.device_count, l.status, p.id, l.message FROM license_view AS l 
+	dbGetByID, err := licManager.db.Prepare(`SELECT l.uuid, pu.title, pu.type, u.name, p.type, l.device_count, l.status, p.id, l.message FROM license_view AS l 
 											INNER JOIN purchase as p ON l.uuid = p.license_uuid 
 											INNER JOIN publication as pu ON p.publication_id = pu.id
 											INNER JOIN user as u ON p.user_id = u.id
@@ -138,6 +140,7 @@ func (licManager LicenseManager) GetFiltered(filter string) ([]License, error) {
 		err = records.Scan(
 			&lic.ID,
 			&lic.PublicationTitle,
+			&lic.PublicationFormat,
 			&lic.UserName,
 			&lic.Type,
 			&lic.DeviceCount,

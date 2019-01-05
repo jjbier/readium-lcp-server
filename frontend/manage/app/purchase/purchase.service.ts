@@ -29,7 +29,8 @@ export class PurchaseService extends CrudService<Purchase> {
             publication: {
                 id: jsonObj.publication.id,
                 uuid: jsonObj.publication.uuid,
-                title: jsonObj.publication.title
+                title: jsonObj.publication.title,
+                format: jsonObj.publication.format
             },
             user: {
                 id: jsonObj.user.id,

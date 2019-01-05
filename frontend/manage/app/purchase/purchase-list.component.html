@@ -27,6 +27,11 @@
         <span *ngIf="order == 'publication.title'&&!reverse" class="fa fa-caret-down"></span>
         <span *ngIf="order == 'publication.title'&&reverse" class="fa fa-caret-up"></span>
       </th>
+      <th class="order-title" (click)="orderBy('publication.type')">
+        Format
+        <span *ngIf="order == 'publication.format'&&!reverse" class="fa fa-caret-down"></span>
+        <span *ngIf="order == 'publication.format'&&reverse" class="fa fa-caret-up"></span>
+      </th>
        <th class="order-title" (click)="orderBy('user.name')">
         User
         <span *ngIf="order == 'user.name'&&!reverse" class="fa fa-caret-down"></span>
@@ -58,6 +63,7 @@
       <td *ngIf="keptWithFilter(purchase)">{{purchase.id}}</td>
       <td *ngIf="keptWithFilter(purchase)">{{formatDate(purchase.transactionDate)}}</td>
       <td *ngIf="keptWithFilter(purchase)">{{purchase.publication.title}}</td>
+      <td *ngIf="keptWithFilter(purchase)">{{purchase.publication.format}}</td>
       <td *ngIf="keptWithFilter(purchase)">{{purchase.user.name}}</td>
       <td *ngIf="keptWithFilter(purchase)">{{purchase.type}}</td>
       <td *ngIf="keptWithFilter(purchase)"><span *ngIf="purchase.type == 'LOAN'">{{formatDate(purchase.startDate)}}</span></td>
