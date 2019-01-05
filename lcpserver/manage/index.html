@@ -5,7 +5,7 @@
     <script src="jquery-3.1.1.slim.min.js"></script>
     <script src="config.js"></script>
     
-    <link href='http://fonts.googleapis.com/css?family=Lato:400,900' rel='stylesheet' type='text/css'>
+    <link href='//fonts.googleapis.com/css?family=Lato:400,900' rel='stylesheet' type='text/css'>
 
     <link rel="shortcut icon" type="image/x-icon" href="favicon.ico" />
     <link rel="stylesheet" type="text/css" href="style.css" />
@@ -163,20 +163,22 @@ function refreshPackages() {
             
               //var jsonStr = JSON.stringify(data__, null, " ");
               var links = data__["links"];
-              var statusLink = links["status"];
-              if (!statusLink) {
-                for (var j = 0; j < links.length; j++) {
-                  var link = links[j];
-                  if (link.rel == "status") {
-                    statusLink = link;
-                    break;
+              if (links) {
+                  var statusLink = links["status"];
+                  if (!statusLink) {
+                      for (var j = 0; j < links.length; j++) {
+                          var link = links[j];
+                          if (link.rel == "status") {
+                              statusLink = link;
+                              break;
+                          }
+                      }
                   }
-                }
-              }
 
-              var href = statusLink["href"];
-              href = href.replace("{license_id}", this.licID)
-              $('#lic_'+this.licID).append(' STATUS: <span><a target="_BLANK" href="'+href+'">'+href+'</a></span>');
+                  var href = statusLink["href"];
+                  href = href.replace("{license_id}", this.licID)
+                  $('#lic_'+this.licID).append(' STATUS: <span><a target="_BLANK" href="'+href+'">'+href+'</a></span>');
+              }
           };
           req__.open("GET", Config.lcp.url+"/licenses/" + licID);
           req__.setRequestHeader("Authorization", "Basic " + btoa(Config.lcp.user + ":" + Config.lcp.password));
