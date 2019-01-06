@@ -71,6 +71,11 @@ type PublicationManager struct {
 	db     *sql.DB
 }
 
+func dbFromURI(uri string) (string, string) {
+	parts := strings.Split(uri, "://")
+	return parts[0], parts[1]
+}
+
 // Get gets a publication by its ID
 //
 func (pubManager PublicationManager) Get(id int64) (Publication, error) {
@@ -124,7 +129,21 @@ func (pubManager PublicationManager) GetByUUID(uuid string) (Publication, error)
 // CheckByTitle checks if the publication exists or not, by its title
 //
 func (pubManager PublicationManager) CheckByTitle(title string) (int64, error) {
-	dbGetByTitle, err := pubManager.db.Prepare("SELECT CASE WHEN EXISTS (SELECT * FROM [publication] WHERE title = ?) THEN CAST(1 AS BIT) ELSE CAST(0 AS BIT) END")
+	var dbURI, queryString string
+
+	if dbURI = config.Config.FrontendServer.Database; dbURI == "" {
+		dbURI = "sqlite3://file:frontend.sqlite?cache=shared&mode=rwc"
+	}
+
+	driver, _ := dbFromURI(dbURI)
+
+	if driver == "mysql" {
+		queryString = `SELECT count(id) FROM publication WHERE title = ?`
+	} else {
+		queryString = `SELECT CASE WHEN EXISTS (SELECT * FROM publication WHERE title = ?) THEN CAST(1 AS BIT) ELSE CAST(0 AS BIT) END"`
+	}
+
+	dbGetByTitle, err := pubManager.db.Prepare(queryString)
 	if err != nil {
 		return -1, err
 	}

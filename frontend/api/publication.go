@@ -117,7 +117,10 @@ func GetPublication(w http.ResponseWriter, r *http.Request, s IServer) {
 // CheckPublicationByTitle check if a publication with this title exist
 func CheckPublicationByTitle(w http.ResponseWriter, r *http.Request, s IServer) {
 	var title string
-	title = r.URL.Query()["title"][0]
+	values := r.URL.Query()
+	if len(values) > 0 {
+		title = values["title"][0]
+	}
 
 	log.Println("Check publication stored with name " + string(title))
 

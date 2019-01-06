@@ -28,6 +28,7 @@ package webdashboard
 import (
 	"database/sql"
 	"errors"
+	"strings"
 
 	"github.com/readium/readium-lcp-server/config"
 )
@@ -74,6 +75,7 @@ type DashboardManager struct {
 func (dashManager DashboardManager) GetDashboardInfos() (Dashboard, error) {
 	//
 	var dash Dashboard
+	var dbURI, queryString string
 
 	dbGet, err := dashManager.db.Prepare("SELECT COUNT(*) FROM publication")
 	if err != nil {
@@ -123,7 +125,20 @@ func (dashManager DashboardManager) GetDashboardInfos() (Dashboard, error) {
 		records.Close()
 	}
 
-	dbGet, err = dashManager.db.Prepare(`SELECT ROUND(AVG(julianday(end_date) - julianday(start_date))) FROM purchase WHERE type="LOAN"`)
+	// use a sqlite db by default
+	if dbURI = config.Config.FrontendServer.Database; dbURI == "" {
+		dbURI = "sqlite3://file:frontend.sqlite?cache=shared&mode=rwc"
+	}
+
+	driver, _ := dbFromURI(dbURI)
+	if driver == "mysql" {
+		queryString = `SELECT ROUND(AVG(DAYOFYEAR(end_date) - DAYOFYEAR(start_date))) FROM purchase WHERE type="LOAN"`
+	} else {
+		queryString = `SELECT ROUND(AVG(julianday(end_date) - julianday(start_date))) FROM purchase WHERE type="LOAN"`
+	}
+
+	dbGet, err = dashManager.db.Prepare(queryString)
+
 	if err != nil {
 		return Dashboard{}, err
 	}
@@ -137,15 +152,37 @@ func (dashManager DashboardManager) GetDashboardInfos() (Dashboard, error) {
 
 	return dash, nil
 }
+func dbFromURI(uri string) (string, string) {
+	parts := strings.Split(uri, "://")
+	return parts[0], parts[1]
+}
 
 // GetDashboardBestSellers a publication for a given ID
 func (dashManager DashboardManager) GetDashboardBestSellers() ([5]BestSeller, error) {
-	dbList, err := dashManager.db.Prepare(
-		`SELECT pub.title, count(pub.id)
+
+	var dbURI, queryString string
+
+	// use a sqlite db by default
+	if dbURI = config.Config.FrontendServer.Database; dbURI == "" {
+		dbURI = "sqlite3://file:frontend.sqlite?cache=shared&mode=rwc"
+	}
+
+	driver, _ := dbFromURI(dbURI)
+	if driver == "mysql" {
+		queryString = `SELECT pub.title, count(pub.id)
+  		FROM purchase pur JOIN publication pub 
+    	ON pur.publication_id = pub.id
+ 		GROUP BY pub.id
+ 		ORDER BY  Count(pur.id) DESC limit 5`
+	} else {
+		queryString = `SELECT pub.title, count(pub.id)
   		FROM [purchase] pur JOIN publication pub 
     	ON pur.publication_id = pub.id
  		GROUP BY pub.id
- 		ORDER BY  Count(pur.id) DESC limit 5`)
+ 		ORDER BY  Count(pur.id) DESC limit 5`
+	}
+
+	dbList, err := dashManager.db.Prepare(queryString)
 	if err != nil {
 		return [5]BestSeller{}, err
 	}

@@ -103,6 +103,7 @@ func convertRecordsToPurchases(records *sql.Rows) func() (Purchase, error) {
 			records.Close()
 			err = ErrNotFound
 		}
+		log.Println("convertRecordsToPurchases", purchase)
 		return purchase, err
 	}
 }
