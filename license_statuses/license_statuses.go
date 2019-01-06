@@ -88,12 +88,15 @@ func (i dbLicenseStatuses) Add(ls LicenseStatus) error {
 
 	if err == nil {
 		var end time.Time
+		//var endOnNil = time.Now().AddDate(100, 0, 0) // Add 100 Year
+
 		if ls.PotentialRights != nil && ls.PotentialRights.End != nil && !(*ls.PotentialRights.End).IsZero() {
 			end = *ls.PotentialRights.End
+			_, err = add.Exec(statusDB, ls.Updated.License, ls.Updated.Status, ls.DeviceCount, &end, ls.LicenseRef, ls.CurrentEndLicense)
+		} else { // fix for mysql 5.7 Set a nil date to NULL rather than 0000-00-00
+			_, err = add.Exec(statusDB, ls.Updated.License, ls.Updated.Status, ls.DeviceCount, ls.CurrentEndLicense, ls.LicenseRef, ls.CurrentEndLicense)
 		}
-		_, err = add.Exec(statusDB, ls.Updated.License, ls.Updated.Status, ls.DeviceCount, &end, ls.LicenseRef, ls.CurrentEndLicense)
 	}
-
 	return err
 }
 
